@@ -11,14 +11,14 @@ const port = process.env.RUNNING_PORT || 5000
 
 app.use(
     cors(
-        //     {
-        //     origin: [
-        //         "http://localhost:5173",
-        //         "http://localhost:5174",
-        //         "http://localhost:5000",
-        //         "https://healthcare-diagnostic-e1ec0.firebaseapp.com",
-        //     ]
-        // }
+        {
+            origin: [
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "https://healthcare-diagnostic-e1ec0.web.app",
+                "https://healthcare-diagnostic-e1ec0.firebaseapp.com",
+            ]
+        }
     )
 );
 app.use(express.json())
@@ -131,12 +131,12 @@ async function run() {
         // Update test by admin
         app.put('/updateTest/:id', TokenVerify, verifyAdmin, async (req, res) => {
             const id = req.params.id
-            const query = {_id : new ObjectId(id)}
+            const query = { _id: new ObjectId(id) }
             const updateData = req.body
-            const options = {upsert : true}
+            const options = { upsert: true }
             const updateDoc = {
-                $set : {
-                    ...updateData
+                $set: {
+                    ...updateData,
                 }
             }
             // console.log(testData)
@@ -155,15 +155,43 @@ async function run() {
 
         // Add bannar by admin
         app.post('/addBannar', TokenVerify, verifyAdmin, async (req, res) => {
-            const testData = req.body
-            const result = await bannarContent.insertOne(testData)
+            const bannar = req.body
+            const result = await bannarContent.insertOne(bannar)
             res.send(result)
         })
 
-        // Add bannar by admin
-        app.post('/allBannar', TokenVerify, verifyAdmin, async (req, res) => {
+        // all banar get
+        app.get('/allBannar', async (req, res) => {
             const result = await bannarContent.find().toArray()
             res.send(result)
+        })
+
+        // selected bannar isActive Status Change
+        app.put('/activeBannar/:id', async (req, res) => {
+            const bannarValue = req.body;
+            const id = req.params.id
+
+            const query = { _id: new ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    ...bannarValue
+                }
+            }
+
+            const options = { upsert: true }
+
+            const result = await bannarContent.updateOne(query, updateDoc, options)
+            res.send(result)
+
+        })
+
+        // Delete Bannar by Admin
+        app.delete('/deleteBannar/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const result = await bannarContent.deleteOne(query)
+            res.send(result)
+
         })
 
 
@@ -196,6 +224,49 @@ async function run() {
         app.post('/booking', TokenVerify, async (req, res) => {
             const bookingData = req.body
             const result = await bookingsCollection.insertOne(bookingData)
+
+            // 3. update booking Count
+            // const updateDoc = {
+            //     $set: {
+            //         $inc: {
+            //             book_Count: 1
+            //         }
+            //     }
+            // }
+            res.send(result)
+        })
+
+
+        // reservation all data
+        app.get('/reservation', async (req, res) => {
+            const search = req.query.search
+            const result = await bookingsCollection.find().toArray()
+            res.send(result)
+        })
+
+        // delete Reservation
+        app.delete('/deleteReservation/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const result = await bookingsCollection.deleteOne(query)
+            res.send(result)
+        })
+
+
+        // give reservation result 
+        app.patch(`/resultSubmit/:id`, async (req, res) => {
+
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+
+            const updateDocument = {
+                $set: {
+                    status: 'Delivered'
+                }
+            }
+
+            const options = { upsert: true }
+            const result = await bookingsCollection.updateOne(query, updateDocument, options)
             res.send(result)
         })
 
@@ -212,11 +283,14 @@ async function run() {
         // appoinment cancel route
         app.delete('/cancel/:id', async (req, res) => {
             const id = req.params.id
-            const query = {_id: new ObjectId(id) }
+            const query = { _id: new ObjectId(id) }
             const result = await bookingsCollection.deleteOne(query)
             res.send(result)
 
         })
+
+
+        // 
 
 
         // get update slotes
